@@ -69,5 +69,5 @@ MyMemory aims to provide a clean, efficient, and secure backend for storing pers
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/mymemory.git
+git clone [https://github.com/yourusername/mymemory.git](https://github.com/makara17092020/MY_MEMORY_BACK_END.git)
 cd mymemory
