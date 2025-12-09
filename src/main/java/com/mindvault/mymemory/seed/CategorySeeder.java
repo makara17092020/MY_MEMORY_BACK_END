@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import com.mindvault.mymemory.entity.category;
+import com.mindvault.mymemory.entity.Category;
 import com.mindvault.mymemory.repository.CategoryRepository;
 
 
@@ -33,7 +33,7 @@ public class CategorySeeder implements CommandLineRunner {
             );
 
             categories.forEach(name -> {
-                category c = new category();
+                Category c = new Category();
                 c.setName(name);
                 categoryRepository.save(c);
             });

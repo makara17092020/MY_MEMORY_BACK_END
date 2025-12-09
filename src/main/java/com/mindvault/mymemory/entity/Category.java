@@ -8,7 +8,7 @@ import jakarta.persistence.GenerationType;
 
 @Entity
 @Table(name = "categories")
-public class category {  // Capital C
+public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,7 +16,7 @@ public class category {  // Capital C
 
     private String name;
 
-    // Optional: getters and setters
+    // Getters and setters
     public Long getId() {
         return id;
     }
