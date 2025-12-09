@@ -6,8 +6,6 @@ import com.mindvault.mymemory.dto.AuthResponse;
 import com.mindvault.mymemory.entity.User;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -19,13 +17,11 @@ public class AuthService {
     private final UserService userService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final UserDetailsService userDetailsService;
 
-    public AuthService(UserService userService, JwtService jwtService, AuthenticationManager authenticationManager, UserDetailsService userDetailsService) {
+    public AuthService(UserService userService, JwtService jwtService, AuthenticationManager authenticationManager) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
-        this.userDetailsService = userDetailsService;
     }
 
     /**
@@ -63,29 +59,22 @@ public class AuthService {
             new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
 
-        // 2. Load UserDetails to generate the token
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(request.username());
+        // 2. Load domain user (implements UserDetails) to generate the token and include user fields
+        final User domainUser = (User) userService.loadUserByUsername(request.username());
 
-        // Try to obtain the domain User to include id, name and email
-        Long userId = null;
-        String name = null;
-        String email = null;
-        if (userDetails instanceof User) {
-            User domainUser = (User) userDetails;
-            userId = domainUser.getId();
-            name = domainUser.getName();
-            email = domainUser.getEmail();
-        }
+        Long userId = domainUser.getId();
+        String name = domainUser.getName();
+        String email = domainUser.getEmail();
 
         // 3. Prepare extra claims and generate token
         Map<String, Object> extraClaims = new HashMap<>();
         if (userId != null) extraClaims.put("id", userId);
-        extraClaims.put("username", userDetails.getUsername());
+        extraClaims.put("username", domainUser.getUsername());
         if (name != null) extraClaims.put("name", name);
         if (email != null) extraClaims.put("email", email);
 
-        final String jwt = jwtService.generateToken(extraClaims, userDetails);
+        final String jwt = jwtService.generateToken(extraClaims, domainUser);
 
-        return new AuthResponse(userId, userDetails.getUsername(), name, email, jwt);
+        return new AuthResponse(userId, domainUser.getUsername(), name, email, jwt);
     }
 }
