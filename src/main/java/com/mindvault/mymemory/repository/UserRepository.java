@@ -9,4 +9,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     // Method used by UserService to check for existing users and load UserDetails
     Optional<User> findByUsername(String username);
+
+    // Find by email to prevent duplicate email registration
+    Optional<User> findByEmail(String email);
 }

@@ -1,6 +1,7 @@
 package com.mindvault.mymemory.service;
 
 import com.mindvault.mymemory.dto.AuthRequest;
+import com.mindvault.mymemory.dto.RegisterRequest;
 import com.mindvault.mymemory.dto.AuthResponse;
 import com.mindvault.mymemory.entity.User;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -8,6 +9,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class AuthService {
@@ -25,24 +29,33 @@ public class AuthService {
     }
 
     /**
-     * Registers a new user and generates a JWT token for them.
+     * Registers a new user and generates a JWT token for them. The token will include basic user data as claims.
      */
-    public AuthResponse register(AuthRequest request) {
+    public AuthResponse register(RegisterRequest request) {
         // Map DTO to Entity
         User newUser = new User();
+        newUser.setName(request.name());
+        newUser.setEmail(request.email());
         newUser.setUsername(request.username());
         newUser.setPassword(request.password());
 
         User savedUser = userService.register(newUser);
 
-        // Generate token immediately after registration
-        final String jwt = jwtService.generateToken(savedUser);
-        
-        return new AuthResponse(savedUser.getUsername(), jwt);
+        // Prepare extra claims with user data
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("id", savedUser.getId());
+        extraClaims.put("username", savedUser.getUsername());
+        extraClaims.put("name", savedUser.getName());
+        extraClaims.put("email", savedUser.getEmail());
+
+        // Generate token with extra claims
+        final String jwt = jwtService.generateToken(extraClaims, savedUser);
+
+        return new AuthResponse(savedUser.getId(), savedUser.getUsername(), savedUser.getName(), savedUser.getEmail(), jwt);
     }
 
     /**
-     * Authenticates an existing user and generates a JWT token.
+     * Authenticates an existing user and generates a JWT token including basic user data as claims.
      */
     public AuthResponse login(AuthRequest request) {
         // 1. Authenticate the user credentials
@@ -52,10 +65,27 @@ public class AuthService {
 
         // 2. Load UserDetails to generate the token
         final UserDetails userDetails = userDetailsService.loadUserByUsername(request.username());
-        
-        // 3. Generate token
-        final String jwt = jwtService.generateToken(userDetails);
 
-        return new AuthResponse(userDetails.getUsername(), jwt);
+        // Try to obtain the domain User to include id, name and email
+        Long userId = null;
+        String name = null;
+        String email = null;
+        if (userDetails instanceof User) {
+            User domainUser = (User) userDetails;
+            userId = domainUser.getId();
+            name = domainUser.getName();
+            email = domainUser.getEmail();
+        }
+
+        // 3. Prepare extra claims and generate token
+        Map<String, Object> extraClaims = new HashMap<>();
+        if (userId != null) extraClaims.put("id", userId);
+        extraClaims.put("username", userDetails.getUsername());
+        if (name != null) extraClaims.put("name", name);
+        if (email != null) extraClaims.put("email", email);
+
+        final String jwt = jwtService.generateToken(extraClaims, userDetails);
+
+        return new AuthResponse(userId, userDetails.getUsername(), name, email, jwt);
     }
 }

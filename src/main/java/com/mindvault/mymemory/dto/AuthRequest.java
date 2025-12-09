@@ -7,5 +7,11 @@ import jakarta.validation.constraints.NotBlank;
  * Uses Java Records, providing automatic accessor methods (e.g., request.username()) and constructors.
  */
 public record AuthRequest(
+    @NotBlank(message = "Name is required") String name,
+    @NotBlank(message = "Email is required") String email,
     @NotBlank(message = "Username is required") String username,
-    @NotBlank(message = "Password is required") String password) {}
+    @NotBlank(message = "Password is required") String password) {
+
+    public String name() {
+        return name;
+    }}

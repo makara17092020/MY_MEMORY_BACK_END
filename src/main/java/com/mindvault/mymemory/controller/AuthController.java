@@ -1,6 +1,7 @@
 package com.mindvault.mymemory.controller;
 
 import com.mindvault.mymemory.dto.AuthRequest;
+import com.mindvault.mymemory.dto.RegisterRequest;
 import com.mindvault.mymemory.dto.AuthResponse;
 import com.mindvault.mymemory.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +25,7 @@ public class AuthController {
     @Operation(summary = "Register a new user")
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
