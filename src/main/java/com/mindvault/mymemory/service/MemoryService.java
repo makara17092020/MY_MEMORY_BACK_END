@@ -4,7 +4,6 @@ import com.mindvault.mymemory.entity.Memory;
 import com.mindvault.mymemory.entity.User; 
 import com.mindvault.mymemory.repository.MemoryRepository;
 import com.mindvault.mymemory.repository.UserRepository; 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,7 +17,6 @@ public class MemoryService {
     private final MemoryRepository memoryRepository;
     private final UserRepository userRepository; 
 
-    @Autowired
     public MemoryService(MemoryRepository memoryRepository, UserRepository userRepository) {
         this.memoryRepository = memoryRepository;
         this.userRepository = userRepository;

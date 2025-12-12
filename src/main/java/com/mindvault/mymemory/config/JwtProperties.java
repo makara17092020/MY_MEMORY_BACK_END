@@ -14,8 +14,8 @@ public class JwtProperties {
     // Must match the property name 'jwt.secret'
     private String secret;
 
-    // Must match the property name 'jwt.expiration' (if added later)
-    // private long expiration;
+    // Maps 'jwt.expiration-ms' from application.properties
+    private long expirationMs = 86400000; // default 24h
 
     public String getSecret() {
         return secret;
@@ -23,5 +23,13 @@ public class JwtProperties {
 
     public void setSecret(String secret) {
         this.secret = secret;
+    }
+
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
+    public void setExpirationMs(long expirationMs) {
+        this.expirationMs = expirationMs;
     }
 }

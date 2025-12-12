@@ -2,7 +2,7 @@ package com.mindvault.mymemory.controller;
 
 import com.mindvault.mymemory.entity.Memory;
 import com.mindvault.mymemory.service.MemoryService;
-import org.springframework.beans.factory.annotation.Autowired;
+ 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +15,6 @@ public class MemoryController {
     private final MemoryService memoryService;
 
     // Explicit Constructor for Dependency Injection (replaces @RequiredArgsConstructor)
-    @Autowired
     public MemoryController(MemoryService memoryService) {
         this.memoryService = memoryService;
     }
