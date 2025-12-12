@@ -48,11 +48,11 @@ public class User implements UserDetails{
     
     // --- UserDetails implementation ---
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Simple implementation: all users have the ROLE_USER authority
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
-    }
+@Override
+public Collection<? extends GrantedAuthority> getAuthorities() {
+    // This grants the user the minimum permission level required by Spring Security
+    return List.of(new SimpleGrantedAuthority("ROLE_USER")); 
+}
 
     @Override
     public boolean isAccountNonExpired() { return true; }
