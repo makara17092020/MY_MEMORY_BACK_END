@@ -1,88 +1,112 @@
 package com.mindvault.mymemory.service;
 
 import com.mindvault.mymemory.entity.Memory;
-import com.mindvault.mymemory.entity.User; 
+import com.mindvault.mymemory.entity.User;
 import com.mindvault.mymemory.repository.MemoryRepository;
 import com.mindvault.mymemory.repository.UserRepository; 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import java.util.List;
 
 @Service
 @Transactional
 public class MemoryService {
 
+    private static final Logger log = LoggerFactory.getLogger(MemoryService.class);
+
     private final MemoryRepository memoryRepository;
-    private final UserRepository userRepository; 
+    private final UserRepository userRepository;
 
     public MemoryService(MemoryRepository memoryRepository, UserRepository userRepository) {
         this.memoryRepository = memoryRepository;
         this.userRepository = userRepository;
     }
 
-    
+    // ---------------- SAFER getCurrentAuthenticatedUser ----------------
     private User getCurrentAuthenticatedUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        // 2. Look up the full User object using the username from the database
-        // This links the current API request to the User entity.
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            log.warn("No authenticated user found");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+
+        String username = auth.getName();
+
+        log.info("Authenticated username: {}", username);
+
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found: " + username));
     }
-    
-    //  Create Memory
+    // ---------------------------------------------------------------------
+
+    // Create Memory
     public Memory createMemory(Memory memory) {
         User currentUser = getCurrentAuthenticatedUser();
-        memory.setUser(currentUser); // Assign memory to the logged-in user
+        memory.setUser(currentUser);
+
+        log.info("Creating memory for user {}: title={}, content={}", currentUser.getId(), memory.getTitle(), memory.getContent());
+
         return memoryRepository.save(memory);
     }
 
-    //  Get Single Memory (Authorization Check)
+    // Get Single Memory (ownership check)
     public Memory getMemoryById(Long memoryId) {
         Long userId = getCurrentAuthenticatedUser().getId();
-        
-        // Uses findByIdAndUserId to enforce ownership
-        return memoryRepository.findByIdAndUserId(memoryId, userId)
-               .orElseThrow(() -> new RuntimeException("Memory not found or access denied.")); // Use custom exception here
+        log.info("Getting memory {} for user {}", memoryId, userId);
+
+        return memoryRepository.findByIdAndUser_Id(memoryId, userId)
+                .orElseThrow(() -> {
+                    log.warn("Memory {} not found or not owned by user {}", memoryId, userId);
+                    return new RuntimeException("Memory not found or access denied");
+                });
     }
 
-    //  Get All User Memories (Authorization Check)
-    public List<Memory> getAllUserMemories() {
+    // Get All User Memories (PAGINATION)
+    public Page<Memory> getAllUserMemories(int page, int size) {
         Long userId = getCurrentAuthenticatedUser().getId();
-        return memoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        Pageable pageable = PageRequest.of(page, size);
+
+        log.info("Getting memories for user {}: page={}, size={}", userId, page, size);
+
+        return memoryRepository.findByUser_IdOrderByCreatedAtDesc(userId, pageable);
     }
 
-    // U: Update Memory (Authorization Check)
+    // Update Memory
     public Memory updateMemory(Long memoryId, Memory updatedDetails) {
-        // Enforces ownership via getMemoryById call
-        Memory existingMemory = getMemoryById(memoryId); 
-
+        Memory existingMemory = getMemoryById(memoryId);
         existingMemory.setTitle(updatedDetails.getTitle());
         existingMemory.setContent(updatedDetails.getContent());
         existingMemory.setImageUrl(updatedDetails.getImageUrl());
-        // User/owner field remains unchanged
-        
+
         return memoryRepository.save(existingMemory);
     }
 
-    // D: Delete Memory (Authorization Check)
+    // Delete Memory
     public void deleteMemory(Long memoryId) {
-        // Enforces ownership via getMemoryById call
-        Memory memoryToDelete = getMemoryById(memoryId); 
-        memoryRepository.delete(memoryToDelete);
+        Long userId = getCurrentAuthenticatedUser().getId();
+        memoryRepository.deleteByIdAndUser_Id(memoryId, userId);
     }
 
-    // --- Search Operation ---
-    
-    public List<Memory> searchMemories(String keyword) {
+    // Search Memories (PAGINATION)
+    public Page<Memory> searchMemories(String keyword, int page, int size) {
         Long userId = getCurrentAuthenticatedUser().getId();
+        Pageable pageable = PageRequest.of(page, size);
 
         if (keyword == null || keyword.isBlank()) {
-            return getAllUserMemories();
+            return getAllUserMemories(page, size);
         }
-        
-        return memoryRepository.searchUserMemories(userId, keyword.trim());
+
+        return memoryRepository.searchUserMemories(userId, keyword.trim(), pageable);
     }
 }
