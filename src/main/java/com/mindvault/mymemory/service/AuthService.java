@@ -8,11 +8,15 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserService userService;
     private final JwtService jwtService;
@@ -54,10 +58,14 @@ public class AuthService {
      * Authenticates an existing user and generates a JWT token including basic user data as claims.
      */
     public AuthResponse login(AuthRequest request) {
+        log.info("Login attempt for username: {}", request.username());
+
         // 1. Authenticate the user credentials
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
+
+        log.info("Authentication successful for username: {}", request.username());
 
         // 2. Load domain user (implements UserDetails) to generate the token and include user fields
         final User domainUser = (User) userService.loadUserByUsername(request.username());

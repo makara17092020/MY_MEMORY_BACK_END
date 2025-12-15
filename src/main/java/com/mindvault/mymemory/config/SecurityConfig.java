@@ -37,7 +37,7 @@ public class SecurityConfig {
     // 3️⃣ Authentication provider using DaoAuthenticationProvider
     @Bean
     public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService,
-                                                         PasswordEncoder passwordEncoder) {
+        PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder);
@@ -59,8 +59,8 @@ public class SecurityConfig {
     // 6️⃣ Security filter chain
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   AuthenticationProvider authenticationProvider,
-                                                   JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+     AuthenticationProvider authenticationProvider,
+     JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
             // Disable CSRF for JWT stateless APIs
             .csrf(csrf -> csrf.disable())
