@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: mymemory-app
+    runtime: java
+    repo: https://github.com/makara17092020/MY_MEMORY_BACK_END
+    branch: main # Or your branch
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -jar target/*.jar
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
