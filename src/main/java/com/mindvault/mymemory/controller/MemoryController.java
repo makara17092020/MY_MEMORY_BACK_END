@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/memories")
@@ -106,4 +107,32 @@ public class MemoryController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Memory>> search(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String category,
+            Pageable pageable
+    ) {
+        Page<Memory> page = memoryService.searchMemories(q, category, pageable);
+
+        ApiResponse.Meta meta = new ApiResponse.Meta(
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalPages(),
+                page.getTotalElements(),
+                page.getTotalElements(),
+                page.getSize()
+        );
+
+        ApiResponse<Memory> response = new ApiResponse<>(
+                "success",
+                true,
+                page.getContent(),
+                meta
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 }

@@ -1,22 +1,21 @@
 package com.mindvault.mymemory.service;
 
 import com.mindvault.mymemory.dto.AuthRequest;
-import com.mindvault.mymemory.dto.RegisterRequest;
 import com.mindvault.mymemory.dto.AuthResponse;
+import com.mindvault.mymemory.dto.RegisterRequest;
 import com.mindvault.mymemory.entity.User;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class AuthService {
-
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserService userService;
     private final JwtService jwtService;
@@ -28,61 +27,52 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
     }
 
-    /**
-     * Registers a new user and generates a JWT token for them. The token will include basic user data as claims.
-     */
     public AuthResponse register(RegisterRequest request) {
-        // Map DTO to Entity
+        if (userService.existsByUsername(request.username())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
+        }
+        if (userService.existsByEmail(request.email())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists");
+        }
+
         User newUser = new User();
+        newUser.setUsername(request.username());
         newUser.setName(request.name());
         newUser.setEmail(request.email());
-        newUser.setUsername(request.username());
         newUser.setPassword(request.password());
 
         User savedUser = userService.register(newUser);
 
-        // Prepare extra claims with user data
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("id", savedUser.getId());
         extraClaims.put("username", savedUser.getUsername());
         extraClaims.put("name", savedUser.getName());
         extraClaims.put("email", savedUser.getEmail());
 
-        // Generate token with extra claims
-        final String jwt = jwtService.generateToken(extraClaims, savedUser);
+        String jwt = jwtService.generateToken(extraClaims, savedUser);
 
         return new AuthResponse(savedUser.getId(), savedUser.getUsername(), savedUser.getName(), savedUser.getEmail(), jwt);
     }
 
-    /**
-     * Authenticates an existing user and generates a JWT token including basic user data as claims.
-     */
     public AuthResponse login(AuthRequest request) {
-        log.info("Login attempt for username: {}", request.username());
+        try {
+            authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.username(), request.password())
+            );
+        } catch (AuthenticationException ex) {
+            throw ex; // will be caught by GlobalExceptionHandler → 401
+        }
 
-        // 1. Authenticate the user credentials
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.username(), request.password())
-        );
+        User user = (User) userService.loadUserByUsername(request.username());
 
-        log.info("Authentication successful for username: {}", request.username());
-
-        // 2. Load domain user (implements UserDetails) to generate the token and include user fields
-        final User domainUser = (User) userService.loadUserByUsername(request.username());
-
-        Long userId = domainUser.getId();
-        String name = domainUser.getName();
-        String email = domainUser.getEmail();
-
-        // 3. Prepare extra claims and generate token
         Map<String, Object> extraClaims = new HashMap<>();
-        if (userId != null) extraClaims.put("id", userId);
-        extraClaims.put("username", domainUser.getUsername());
-        if (name != null) extraClaims.put("name", name);
-        if (email != null) extraClaims.put("email", email);
+        extraClaims.put("id", user.getId());
+        extraClaims.put("username", user.getUsername());
+        extraClaims.put("name", user.getName());
+        extraClaims.put("email", user.getEmail());
 
-        final String jwt = jwtService.generateToken(extraClaims, domainUser);
+        String jwt = jwtService.generateToken(extraClaims, user);
 
-        return new AuthResponse(userId, domainUser.getUsername(), name, email, jwt);
+        return new AuthResponse(user.getId(), user.getUsername(), user.getName(), user.getEmail(), jwt);
     }
 }

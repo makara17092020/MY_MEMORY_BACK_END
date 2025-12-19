@@ -36,6 +36,37 @@ public interface MemoryRepository extends JpaRepository<Memory, Long> {
             Pageable pageable
     );
 
+    @Query("""
+        SELECT m FROM Memory m
+        JOIN m.category c
+        WHERE m.user.id = :userId
+        AND (
+            LOWER(m.title) LIKE LOWER(CONCAT('%', :q, '%'))
+            OR LOWER(c.name)  LIKE LOWER(CONCAT('%', :q, '%'))
+        )
+        ORDER BY m.createdAt DESC
+    """)
+    Page<Memory> searchByTitleOrCategory(
+            @Param("userId") Long userId,
+            @Param("q") String q,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT m FROM Memory m
+        JOIN m.category c
+        WHERE m.user.id = :userId
+        AND LOWER(c.name) = LOWER(:category)
+        AND LOWER(m.title) LIKE LOWER(CONCAT('%', :q, '%'))
+        ORDER BY m.createdAt DESC
+    """)
+    Page<Memory> searchByTitleAndCategory(
+            @Param("userId") Long userId,
+            @Param("q") String q,
+            @Param("category") String category,
+            Pageable pageable
+    );
+
     // Check ownership
     boolean existsByIdAndUser_Id(Long id, Long userId);
 

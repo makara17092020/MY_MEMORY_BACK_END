@@ -68,7 +68,7 @@ public class MemoryService {
         return memoryRepository.findByIdAndUser_Id(memoryId, userId)
                 .orElseThrow(() -> {
                     log.warn("Memory {} not found or not owned by user {}", memoryId, userId);
-                    return new RuntimeException("Memory not found or access denied");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Memory not found or access denied");
                 });
     }
 
@@ -109,4 +109,34 @@ public class MemoryService {
 
         return memoryRepository.searchUserMemories(userId, keyword.trim(), pageable);
     }
+
+    public Page<Memory> searchMemories(
+            String q,
+            String category,
+            Pageable pageable
+    ) {
+        Long userId = getCurrentAuthenticatedUser().getId();
+
+        if ((q == null || q.isBlank()) && (category == null || category.isBlank())) {
+            return memoryRepository.findByUser_IdOrderByCreatedAtDesc(userId, pageable);
+        }
+
+        String keyword = q == null ? "" : q.trim();
+
+        if (category != null && !category.isBlank()) {
+            return memoryRepository.searchByTitleAndCategory(
+                    userId,
+                    keyword,
+                    category.trim(),
+                    pageable
+            );
+        }
+
+        return memoryRepository.searchByTitleOrCategory(
+                userId,
+                keyword,
+                pageable
+        );
+    }
+
 }
